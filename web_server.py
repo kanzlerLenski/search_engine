@@ -34,7 +34,7 @@ class Web_Server(BaseHTTPRequestHandler):
         # If search-button was pressed, use default values for offset and limit.
         if form.getvalue('search'):
             offset = 0
-            limit = 1
+            limit = 1            
 
         # Get a value of a query-field. 
         if form.getvalue('query'):
@@ -156,7 +156,7 @@ class Web_Server(BaseHTTPRequestHandler):
         # Count how many documents were already printed. 
         i = 0
 
-        # Each document is a given a counting number and set number (limit) citations from it is printed. 
+        # Each document is given a counting number and set number (limit) citations from it is printed. 
         for key in sorted(request):
 
             # The last document is not given to a user. 
@@ -201,7 +201,7 @@ class Web_Server(BaseHTTPRequestHandler):
 
                 # If it's the only page, don't print any buttons.
                 elif offset_for_citations[i] == 0 and len(request[key]) <= limit_for_citations[i] - 1:
-                    pass
+                    self.wfile.write(bytes("</ul></li>", encoding='utf-8'))
 
                 # If it's the last page, print only 'back' and 'start'.
                 else:
@@ -215,7 +215,7 @@ class Web_Server(BaseHTTPRequestHandler):
             else:
                 pass
 
-        # The same thing with buttons for citations. 
+        # The same thing with buttons for documents. 
         if offset == 0 and len(request.keys()) > limit:
             self.wfile.write(
                 bytes("</ol><p><input type=\"submit\" name =\"next\" value =\"Next\"></p></form></body></html>",
@@ -229,19 +229,19 @@ class Web_Server(BaseHTTPRequestHandler):
                 encoding='utf-8'))
 
         elif offset == 0 and len(request.keys()) <= limit:
-            pass
+            self.wfile.write(bytes("</ol></form></body></html>", encoding='utf-8'))
 
         else:
-            self.wfile.write(bytes("</ul></li><p><input type=\"submit\" name =\"back\" value =\"Back\"> "
-                                   "<input type=\"submit\" name =\"start\" value =\"At the start\"></p>",
-                                   encoding='utf-8'))
+            self.wfile.write(bytes("</ol><p><input type=\"submit\" name =\"back\" value =\"Back\"> "
+                                   "<input type=\"submit\" name =\"start\" value =\"At the start\"> "
+                                   "</p></form></body></html>", encoding='utf-8'))
 
 
 # Run the server.
 def run(server_class=HTTPServer, handler_class=Web_Server):
     server_address = ('', 8000)
     httpd = server_class(server_address, handler_class)
-    httpd.engine = search_engine.Search_Engine('war_and_peace')
+    httpd.engine = search_engine.Search_Engine('war_and_peace_stems', 'noun_stems_db', 'noun_flexions_db')
     httpd.serve_forever()
 
 
