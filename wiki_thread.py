@@ -98,12 +98,10 @@ with open('process_1.txt', 'w', encoding='utf_8') as f:
                 file_name = 'process_' + str(i) + '.txt'
                 files.append(file_name)
                 
-                # Create a thread to traverse this category. 
-                processes.append(threading.Thread(target=check_cat, args=(cat, bad_stack, file_name))) 
-
-# Start threads.                 
-for process in processes:
-    process.start()
+                # Create and start a thread to traverse this category.
+                process = threading.Thread(target=check_cat, args=(cat, bad_stack, file_name)))
+                process.start()
+                processes.append(process)
 
 # Join threads. 
 for process in processes:
