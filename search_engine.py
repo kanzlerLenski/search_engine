@@ -7,20 +7,31 @@ import tokenizer
 import window
 from functools import reduce
 import generator
+import wiki_stemmer
 
 
 # The class Search_Engine contains the database to seach in
 # and the method, which performs the search. 
 class Search_Engine(object):
-    def __init__(self, path):
+    def __init__(self, path, stems=None, flexions=None):
 
         self.path = path
         self.db = shelve.open(path)
+
+        if stems and flexions != None:
+
+            self.stems = stems
+            self.flexions = flexions
+
+            self.stems_db = shelve.open(stems, 'r')         
+            self.flexions_db = shelve.open(flexions, 'r')
 
     # Deconstructor for a 'Search_Engine' instance.
     def __del__(self):
 
         self.db.close()
+        self.stems_db.close()
+        self.flexions_db.close()
 
     # The method 'token_search' returns the value of a seached token in the database.
     def token_search(self, token):
@@ -634,7 +645,7 @@ class Search_Engine(object):
         """
 
         # A dictionary with files and positions for a query is created.
-        dict_of_positions = self.many_tokens_search_3(string, limit, offset)
+        dict_of_positions = self.many_tokens_search_4(string, limit, offset)
 
         # For each document as a value a generator is set. It yields context windows.
         for key in dict_of_positions:
@@ -645,14 +656,26 @@ class Search_Engine(object):
     # The method 'windows_intersect' intersects context windows. 
     def windows_intersect(self, windows_lst):
 
-        # Each window is compared with the next one.
+        # Try to take two windows.  
         try:
             window = next(windows_lst)
             window_2 = next(windows_lst)
-        except StopIteration:
-            raise
 
+        # If StopIteration, either one ot both are empty. 
+        except StopIteration:
+
+            # Try to yield one and terminate by raising an exception. 
+            try:
+                yield window
+                raise
+
+            # If not, raise at once. 
+            except StopIteration:
+                raise
+
+        # Each window is compared with the next one.
         while True:
+            
             # If they intersect...
             if window.intersects(window_2):
 
@@ -661,7 +684,10 @@ class Search_Engine(object):
 
                     # ... a new window is not created, but rather arguments of
                     # a current window are changed.
-                    window.positions += window_2.positions
+                    #window.positions += window_2.positions
+                    for w in window_2.positions:
+                        if w not in window.positions:
+                             window.positions.append(w)
 
                     # The right border of the window is expended.
                     window.right = window_2.right
@@ -682,6 +708,7 @@ class Search_Engine(object):
                     # ... and take the next to compare.
                     try:
                         window_2 = next(windows_lst)
+                        
                     except StopIteration:
                         yield window
                         break
@@ -808,7 +835,7 @@ class Search_Engine(object):
         Use the method 'emphasize' to get a list of citations relevant to the query
         and mark searched tokens with bold.
         """
-
+        
         # A dictionary with intersected sentences. 
         windows = self.sent_intersect_3(string, window_size, limit, offset)
 
@@ -826,12 +853,16 @@ class Search_Engine(object):
             # Count for limit.
             lim = 0
 
-            # Offset for citations of thw document d.
-            citations_offset = limit_and_offset[d][0]
+            try:
 
-            # Limit for citations of thw document d.
-            citations_limit = limit_and_offset[d][1]
-            d = d + 1
+                # Offset for citations of the document d.
+                citations_offset = limit_and_offset[d][0]
+
+                # Limit for citations of thе document d.
+                citations_limit = limit_and_offset[d][1]
+
+            except IndexError:
+                break
 
             # Skip until offset. 
             while off < citations_offset:
@@ -873,5 +904,56 @@ class Search_Engine(object):
 
             # Replace generator with list of citations.
             windows[key] = citations
+            d += 1
 
         return windows
+
+    # From here begins a new version of Search_Engine, where the search by stems is provided. 
+
+    # The method 'many_tokens_search_4' returns a dictionary,
+    # where keys are file names and values are generators
+    # yeilding  positions of in that file.
+    # Parameters 'limit' and 'offset' limit the number of documents in the output.
+    def many_tokens_search_4(self, string, limit, offset):
+        """
+        Use the method 'many_tokens_search_4' to find phrases and sentences.
+        Using 'limit' and 'offset' you can limit the number of documents you'd like to see.
+        'offset' is the number of the first document you'd like to see.
+        'limit' is a number of documents you'd like to see. 
+        """
+
+        # The typed string is tokenized.
+        tokens = tokenizer.Tokenizer().se_tokenize(string)
+        stemmer = wiki_stemmer.Wiki_Stemmer(self.stems, self.flexions)
+        dicts = []
+        result = {}
+        all_stems = []
+
+        # All the values of the searched tokens from the database are added into dictionary.
+        for t in tokens:
+            stems = stemmer.stemmer_manager(t.content)
+            for stem in stems:
+                dicts.append(self.token_search(stem))
+                all_stems.append(stem)
+
+        # The keys of the searched tokens are intersected...
+        keys = list(reduce(lambda x, y: x & y.keys(), dicts))
+
+        # ... sorted...
+        keys.sort()
+
+        # ... and limited by the set user perameters.
+        limited_keys = keys[offset:offset + limit]
+
+        # The values are added to the list.
+        for key in limited_keys:
+            lst_of_positions = []
+            for stem in all_stems:
+                # 'token_search' returns the dictionary with file names as keys,
+                # so it retuns all token's positions in the file.
+                lst_of_positions.append(self.token_search(stem)[key])
+            
+            # 'sorting' is a generator yielding in ascending order one file position at a time.
+            result[key] = generator.sorting(lst_of_positions)
+
+        return result
