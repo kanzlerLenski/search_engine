@@ -88,12 +88,12 @@ class Test(unittest.TestCase):
         del se4
         
         # The test files and database are removed.
-        os.remove('text.txt')
-        os.remove('text2.txt')
-        os.remove('text3.txt')
-        os.remove('db.bak')
-        os.remove('db.dat')
-        os.remove('db.dir')
+        #os.remove('text.txt')
+        #os.remove('text2.txt')
+        #os.remove('text3.txt')
+        #os.remove('db.bak')
+        #os.remove('db.dat')
+        #os.remove('db.dir')
 
 if __name__ == '__main__':
     unittest.main()
