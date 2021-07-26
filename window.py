@@ -43,21 +43,18 @@ class Window(object):
 
         # The substring is tokenized.
         tokens = list(tokenizer.Tokenizer().se_tokenize(s2))
-        ######################################################
-        if tokens[-1] is '':
-            pass
-        else:
-            self.right = self.pos_start + tokens[-1].last_char_num
+
+        self.right = self.pos_start + tokens[-1].last_char_num
         
-            for i2, t2 in enumerate(tokens):
-                # The right end of the context window is at first equals
-                # the last char index of the string and then,
-                # if the substring is big enough for a given size of a context window,
-                # is calculated.
-                if i2 == self.cont_w:
-                    self.right = self.pos_start + t2.last_char_num
-                    break
-                    
+        for i2, t2 in enumerate(tokens):
+            # The right end of the context window is at first equals
+            # the last char index of the string and then,
+            # if the substring is big enough for a given size of a context window,
+            # is calculated.
+            if i2 == self.cont_w:
+                self.right = self.pos_start + t2.last_char_num
+                break
+                
     def __repr__(self):
         return '({}, {}, {})'.format(self.pos_str, self.left, self.right)
 
