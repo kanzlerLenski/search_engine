@@ -6,6 +6,7 @@ import tokenizer
 import os
 import shelve
 import functools
+import wiki_stemmer
 
 # The class 'Position' contains the constructor,
 # which keeps information of a token's first and last char index. 
@@ -182,11 +183,43 @@ class Indexer(object):
                         # As the content of the database was changed, it needs to be rewritten.
                         db[t.content] = db_tokens
 
-#war_and_peace1 = 'C:\\Users\\kanzl\\Google Диск\\Программирование\\Война и мир\\Толстой Лев Николаевич. Война и мир. Том 1.txt'
-#war_and_peace2 = 'C:\\Users\\kanzl\\Google Диск\\Программирование\\Война и мир\\Толстой Лев Николаевич. Война и мир. Том 2.txt'
-#war_and_peace3 = 'C:\\Users\\kanzl\\Google Диск\\Программирование\\Война и мир\\Толстой Лев Николаевич. Война и мир. Том 3.txt'
-#war_and_peace4 = 'C:\\Users\\kanzl\\Google Диск\\Программирование\\Война и мир\\Толстой Лев Николаевич. Война и мир. Том 4.txt'
-#db = Indexer().db_maker(war_and_peace1, 'war_and_peace')
-#db = Indexer().db_maker(war_and_peace2, 'war_and_peace')
-#db = Indexer().db_maker(war_and_peace3, 'war_and_peace')
-#db = Indexer().db_maker(war_and_peace4, 'war_and_peace')
+    # 'stems_db_maker' indexizes files string by string and returns the database of stems.       
+    def stems_db_maker(self, stems_db, flexions_db, i_file, db_name):
+        """
+        Use the class 'Indexer' and the method 'stems_db_maker' to indexize a file
+        and create the database of its stems.
+        """
+
+        # Stemmer-instance is created. 
+        stemmer = wiki_stemmer.Wiki_Stemmer(stems_db, flexions_db)
+    
+        # The database file is created. 
+        with shelve.open(db_name, 'c', writeback = True) as db: 
+
+            # The file is opened.
+            with open(i_file, 'r', encoding='UTF-8') as f:
+
+                # The file name is fixed.
+                file_name = os.path.basename(i_file)
+
+                # The 'Tokenizer' instance is created.
+                token = tokenizer.Tokenizer()
+
+                # The file is iterated string by string.
+                # Each string is tokenized, stemmed and its stems are appended to the database.
+                for str_num, string in enumerate(f):
+                    tokens = token.se_tokenize(string)
+                    for t in tokens:
+                        stems = stemmer.stemmer_manager(t.content)
+                        for stem in stems:
+                            db.setdefault(stem, {}).setdefault(file_name, []).append(
+                            Position_structure(str_num, t.first_char_num, t.last_char_num))
+
+#war_and_peace1 = 'C:\\Users\\kanzl_000\\Google Диск\\Программирование\\Толстой Лев Николаевич. Война и мир. Том 1.txt'
+#war_and_peace2 = 'C:\\Users\\kanzl_000\\Google Диск\\Программирование\\Толстой Лев Николаевич. Война и мир. Том 2.txt'
+#war_and_peace3 = 'C:\\Users\\kanzl_000\\Google Диск\\Программирование\\Толстой Лев Николаевич. Война и мир. Том 3.txt'
+#war_and_peace4 = 'C:\\Users\\kanzl_000\\Google Диск\\Программирование\\Толстой Лев Николаевич. Война и мир. Том 4.txt'
+#db = Indexer().stems_db_maker('noun_stems_db', 'noun_flexions_db', war_and_peace1, 'war_and_peace_stems')
+#db = Indexer().stems_db_maker('noun_stems_db', 'noun_flexions_db', war_and_peace2, 'war_and_peace_stems')
+#db = Indexer().stems_db_maker('noun_stems_db', 'noun_flexions_db', war_and_peace3, 'war_and_peace_stems')
+#db = Indexer().stems_db_maker('noun_stems_db', 'noun_flexions_db', war_and_peace4, 'war_and_peace_stems')
