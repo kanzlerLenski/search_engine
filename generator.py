@@ -15,6 +15,6 @@ def sorting(positions):
             iterators.pop(i)
         yield(min_el)
         
-array = [[1, 4 , 5], [4, 5, 12, 39, 78], [0, 4, 55, 66], [0]]
+#array = [[1, 4 , 5], [4, 5, 12, 39, 78], [0, 4, 55, 66], [0]]
 #positions = list(sorting(array))
 #print(positions)
